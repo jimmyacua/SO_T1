@@ -56,30 +56,31 @@ int main(int argc, char** argv) {
 
     int st = 0;
     int n = argc;
-    for(int i = 1; i<= argc; i++){
-    if(!fork()) { //proceso hijo
-        //string archivo = "ejemploXML.xml";
-	string archivo = argv[i];
-        f.leerArchivo(archivo);
-        int cont = 1;
-        while (cont <= f.totalEtq()) {
+    for(int i = 1; i< n; i++){
+        if(!fork()) { //proceso hijo
+            //string archivo = "ejemploXML.xml";
+            string archivo = argv[i];
+            f.leerArchivo(archivo);
+            int cont = 1;
+            while (cont <= f.totalEtq()) {
             strncpy(B.label ,f.getEtq(cont).c_str(),MSGSIZE);
             B.times = f.getTimes(cont);
             B.mtype = i;
             ssize_t len = sizeof(B.label)-sizeof(long);
             st = msgsnd(idB, &B, len, IPC_NOWAIT);
             cont++;
+            }
+            strncpy(B.label ,finalTag.c_str(),MSGSIZE);
+            ssize_t len = sizeof(B.label)-sizeof(long);
+            st = msgsnd(idB, &B, len, IPC_NOWAIT);
+            
+            sem.Signal();
+            cout << "mensaje de alv " << argv[i] << endl;
+            _exit(0);
         }
-        strncpy(B.label ,finalTag.c_str(),MSGSIZE);
-        ssize_t len = sizeof(B.label)-sizeof(long);
-        st = msgsnd(idB, &B, len, IPC_NOWAIT);
-
-        sem.Signal();
-        _exit(0);
-    }
   }
 
-  /*for(int i=1; i<= argc; i++){
+  for(int i=1; i<n; i++){
         struct my_msgbuf r;
         cout << "Proceso padre:" << endl;
         sem.Wait();
@@ -93,13 +94,14 @@ int main(int argc, char** argv) {
             st = msgrcv(idB, &r, MSGSIZE, i, IPC_NOWAIT);
             cont++;
         }
-   }*/
+        cout << "fin" << endl;
+  }
 
-        //cout << "fin" << endl;
+        
 
         msgctl(idB, IPC_RMID, NULL);
-        /*shmdt(area);
-        shmctl(id, IPC_RMID, NULL);*/
+        shmdt(area);
+        shmctl(id, IPC_RMID, NULL);
         //_exit(0);
 
 	return 0;
