@@ -21,7 +21,7 @@ struct AreaCompartida {
         char etq[MSGSIZE];
         int Veces;
     }
-    Etiquetas[50];
+            Etiquetas[50];
 };
 
 typedef struct AreaCompartida AC;
@@ -49,7 +49,7 @@ int main(int argc, char** argv) {
 
     int idB = msgget(KEY,0600|IPC_CREAT);
     if ( -1 == idB) {
-        perror("t0-recibe: ");
+        perror("Constuctor buzon: ");
         exit(1);
     }
     int st = 0;
@@ -65,7 +65,7 @@ int main(int argc, char** argv) {
             B.mtype = 1;
             ssize_t len = sizeof(B.label)-sizeof(long);
             st = msgsnd(idB, &B, len, IPC_NOWAIT);
-            //area->Etiquetas[cont].Veces = f.getTimes(cont);
+            area->Etiquetas[cont].Veces = f.getTimes(cont);
             //b.Enviar(f.getEtq(cont).c_str(), f.getTimes(cont), 1);
             cont++;
         }
@@ -76,26 +76,26 @@ int main(int argc, char** argv) {
         sem.Signal();
         _exit(0);
     }
+        struct my_msgbuf r;
+        cout << "Proceso padre:" << endl;
+        sem.Wait();
+        //int cont = b.Recibir(1);
+        st = msgrcv(idB, &r, MSGSIZE, 1, IPC_NOWAIT);
+        int cont = 0;
+        while (st > 0) {
+            area->numEtq++;
+            strncpy(area->Etiquetas[cont].etq, r.label, MSGSIZE);
+            area->Etiquetas[cont].Veces = r.times;
+            cout << "Etiq: " << r.label << ", veces: " << r.times << endl;
+            st = msgrcv(idB, &r, MSGSIZE, 1, IPC_NOWAIT);
+            cont++;
+        }
 
-    struct my_msgbuf r;
-    cout << "Proceso padre:" << endl;
-    sem.Wait();
-    //int cont = b.Recibir(1);
-    st = msgrcv(idB,&r, MSGSIZE, 1, IPC_NOWAIT);
-    int cont = 0;
-    while(st > 0){
-        area->numEtq++;
-        strncpy(area->Etiquetas[cont].etq, r.label,MSGSIZE);
-        area->Etiquetas[cont].Veces = r.times;
-        //cout << "Etiq: " << r.label << ", veces: " << r.times << endl;
-        st = msgrcv(idB,&r, MSGSIZE, 1, IPC_NOWAIT);
-        cont++;
-    }
+        cout << "fin" << endl;
 
-    cout << "fin" << endl;
+        msgctl(idB, IPC_RMID, NULL);
+        shmdt(area);
+        shmctl(id, IPC_RMID, NULL);
+        _exit(0);
 
-    msgctl(idB, IPC_RMID, NULL);
-    shmdt( area );
-    shmctl( id, IPC_RMID, NULL );
-    _exit(0);
 }
