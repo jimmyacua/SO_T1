@@ -66,7 +66,7 @@ int Semaforo::Signal(){
 int Semaforo::Wait(){
     struct sembuf s;
     s.sem_num = 0;
-    s.sem_op = -1; //signal: +1
+    s.sem_op = -1;
     s.sem_flg = 0;
 
     int st = semop(id, &s, 1);

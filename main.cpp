@@ -9,66 +9,60 @@
 #include "Diccionario.h"
 #include "Fichero.h"
 #include <wait.h>
+#include <sys/sem.h>
 
 #include "Buzon.h"
 #include "Semaforo.h"
 
+struct AreaCompartida {
+    int numEtq;
+    struct Etiqueta {
+        char etq[MSGSIZE];
+        int Veces;
+    }
+    Etiquetas[50];
+};
+
+typedef struct AreaCompartida AC;
+
 int main(int argc, char** argv) {
+
+    //--------Memoria compartida----------------
+    AC * area;
+    int id = shmget(KEY,1024,0600|IPC_CREAT);
+    area = (AC *) shmat(id, NULL, 0);
+    //------------------------------------------
+    Semaforo sem;
     Fichero f;
     Buzon b;
-    string param = argv[1];
-    if(param.compare("-t") == 0) {
-        string nombre = argv[2];
-        f.opcional(nombre);
-    }
-    else {
-        string archivo = argv[1];
-        int i = fork();
-        if(i) {
-            cout << i << " Empieza a leer " << endl;
-            f.leerArchivo(archivo);
-            int cont = 1;
-            while(cont <= f.totalEtq()){
-                b.Enviar(f.getEtq(cont).c_str(), f.getTimes(cont), 1);
-                cont++;
-            }
-            struct msgbuf A;
-            int st = b.Recibir(1);
-            while(st > 1) {
-                b.Recibir(1);
-            }
-            _exit(0);
-        }
-        else{
-            exit(0);
-        }
-    }
-
-    //PARTE 2
-    /*
-    int id;
-    id = shmget(KEY, 1024, 0600 | IPC_CREAT );
-    char * area = (char *) shmat( id, NULL, 0 );
-    Buzon b;
-    if ( fork() ) {
-        Fichero f;
-        string archivo = argv[1];
+    if(!fork()) { //proceso hijo
+        string archivo = "/home/jimmy/GitHub/SO_T1/ejemploXML.xml";
         f.leerArchivo(archivo);
         int cont = 1;
-        while(cont <= f.totalEtq()){
+        while (cont < f.totalEtq()) {
+            area->numEtq++;
+            strncpy(area->Etiquetas[cont].etq ,f.getEtq(cont).c_str(),MSGSIZE);
+            area->Etiquetas[cont].Veces = f.getTimes(cont);
             b.Enviar(f.getEtq(cont).c_str(), f.getTimes(cont), 1);
             cont++;
         }
-        _exit(0);
+        sem.Signal();
+        exit(0);
     }
-    else {
+
+    cout << "Proceso padre:" << endl;
+    sem.Wait();
+    int cont = 1;
+    while(cont < area->numEtq){
         int st = b.Recibir(1);
-        while(st > 1) {
-            b.Recibir(1);
+        if(st < 1){
+            cont = area->numEtq;
+        } else{
+            cont++;
         }
     }
     shmdt( area );
     shmctl( id, IPC_RMID, NULL );
     _exit(0);
-*/
+
 }

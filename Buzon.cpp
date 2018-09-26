@@ -53,7 +53,6 @@ int Buzon::Recibir(long type) {
         char mensaje[MSGSIZE];
         int times = receiver.times;
         strncpy(mensaje, receiver.msj , MSGSIZE); //si se hace asignación no funciona correctamente.
-        //printf("El mensaje recibido es:%s\n", mensaje, " aparece :", times);
         cout << "El mensaje es: "  << mensaje << " y aparece: " << times << " veces." << endl;
     }
     return  st;
