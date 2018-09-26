@@ -48,7 +48,7 @@ int Buzon::Recibir(long type) {
     int st = msgrcv(id,&receiver, MSGSIZE,type,MSG_NOERROR | IPC_NOWAIT);
     if(-1 == st){ //hubo error
         perror("Buzon::recibir falló");
-        exit(2);
+        _exit(2);
     } else{
         char mensaje[MSGSIZE];
         int times = receiver.times;
