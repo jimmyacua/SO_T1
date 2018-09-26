@@ -72,19 +72,23 @@ int main(int argc, char** argv) {
             }
             strncpy(B.label ,finalTag.c_str(),MSGSIZE);
             ssize_t len = sizeof(B.label)-sizeof(long);
+            B.times = -13;
             st = msgsnd(idB, &B, len, IPC_NOWAIT);
             
             sem.Signal();
-            cout << "mensaje de alv " << argv[i] << endl;
             _exit(0);
         }
   }
-
+    
+  char * AP[n];  //cambiar a diccionario
   for(int i=1; i<n; i++){
         struct my_msgbuf r;
+        
         cout << "Proceso padre:" << endl;
         sem.Wait();
         st = msgrcv(idB, &r, MSGSIZE, i, IPC_NOWAIT);
+        AP[i] = r.label;
+        /*st = msgrcv(idB, &r, MSGSIZE, i, IPC_NOWAIT);
         int cont = 0;
         while (st > 0) {
             area->numEtq++;
@@ -93,9 +97,13 @@ int main(int argc, char** argv) {
             cout << "Etiq: " << r.label << ", veces: " << r.times << endl;
             st = msgrcv(idB, &r, MSGSIZE, i, IPC_NOWAIT);
             cont++;
-        }
+        }*/
         cout << "fin" << endl;
   }
+    
+    for(int i=1; i<n; i++){
+        cout << AP[i] << endl;
+    }
 
         
 
