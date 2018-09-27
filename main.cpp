@@ -94,16 +94,6 @@ int main(int argc, char** argv) {
         st = msgrcv(idB, &r, MSGSIZE, i, IPC_NOWAIT);
         strncpy(ap.Etiquetas[i].etq,r.label, MSGSIZE);
         ap.Etiquetas[i].Veces = r.times;
-        /*st = msgrcv(idB, &r, MSGSIZE, i, IPC_NOWAIT);
-        int cont = 0;
-        while (st > 0) {
-            area->numEtq++;
-            strncpy(area->Etiquetas[cont].etq, r.label, MSGSIZE);
-            area->Etiquetas[cont].Veces = r.times;
-            cout << "Etiq: " << r.label << ", veces: " << r.times << endl;
-            st = msgrcv(idB, &r, MSGSIZE, i, IPC_NOWAIT);
-            cont++;
-        }*/
         cout << "fin" << endl;
     }
     bool listo[n];
@@ -131,16 +121,18 @@ int main(int argc, char** argv) {
             numListos++;
         }
     }
-
+    cout << area->numEtq << endl;
     for(int i = 1; i<area->numEtq;i++){
         cout << area->Etiquetas[i].etq << " : " << area->Etiquetas[i].Veces << endl;
     }
 
+    /*
+     * FALTA: ED para guardar en la mem compartida las etiquetas sin que se repitan
+     */
 
     msgctl(idB, IPC_RMID, NULL);
     shmdt(area);
     shmctl(id, IPC_RMID, NULL);
-    //_exit(0);
 
     return 0;
 }
