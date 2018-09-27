@@ -11,6 +11,8 @@
 #include <wait.h>
 #include <sys/sem.h>
 #include <unistd.h>
+#include <map>
+#include <iterator>
 
 #include "Semaforo.h"
 //#include "Buzon.h"
@@ -23,10 +25,11 @@ struct AreaCompartida {
         char etq[MSGSIZE];
         int Veces;
     }
-        Etiquetas[50];
+    Etiquetas[50];
 };
 
 typedef struct AreaCompartida AC;
+
 
 struct my_msgbuf {
     long mtype;     // message type, must be > 0
@@ -38,12 +41,14 @@ struct my_msgbuf B;
 
 string finalTag = "finalTag";
 
+
 int main(int argc, char** argv) {
 
     //--------Memoria compartida----------------
     AC * area;
     int id = shmget(KEY,1024,0600|IPC_CREAT);
     area = (AC *) shmat(id, NULL, 0);
+    area->numEtq = 0;
     //------------------------------------------
     Semaforo sem;
     Fichero f;
@@ -56,34 +61,40 @@ int main(int argc, char** argv) {
 
     int st = 0;
     int n = argc;
-    for(int i = 1; i<= argc; i++){
-    if(!fork()) { //proceso hijo
-        //string archivo = "ejemploXML.xml";
-	string archivo = argv[i];
-        f.leerArchivo(archivo);
-        int cont = 1;
-        while (cont <= f.totalEtq()) {
-            strncpy(B.label ,f.getEtq(cont).c_str(),MSGSIZE);
-            B.times = f.getTimes(cont);
-            B.mtype = i;
+    for(int i = 1; i< n; i++){
+        if(!fork()) { //proceso hijo
+            //string archivo = "ejemploXML.xml";
+            string archivo = argv[i];
+            f.leerArchivo(archivo);
+            int cont = 1;
+            while (cont <= f.totalEtq()) {
+                strncpy(B.label ,f.getEtq(cont).c_str(),MSGSIZE);
+                B.times = f.getTimes(cont);
+                B.mtype = i;
+                ssize_t len = sizeof(B.label)-sizeof(long);
+                st = msgsnd(idB, &B, len, IPC_NOWAIT);
+                cont++;
+            }
+            strncpy(B.label ,finalTag.c_str(),MSGSIZE);
             ssize_t len = sizeof(B.label)-sizeof(long);
+            B.times = -13;
             st = msgsnd(idB, &B, len, IPC_NOWAIT);
-            cont++;
+
+            sem.Signal();
+            _exit(0);
         }
-        strncpy(B.label ,finalTag.c_str(),MSGSIZE);
-        ssize_t len = sizeof(B.label)-sizeof(long);
-        st = msgsnd(idB, &B, len, IPC_NOWAIT);
-
-        sem.Signal();
-        _exit(0);
     }
-  }
 
-  /*for(int i=1; i<= argc; i++){
-        struct my_msgbuf r;
+    //char * AP[n];  //cambiar a diccionario
+    AC ap;
+    struct my_msgbuf r;
+    for(int i=1; i<n; i++){
         cout << "Proceso padre:" << endl;
         sem.Wait();
         st = msgrcv(idB, &r, MSGSIZE, i, IPC_NOWAIT);
+        strncpy(ap.Etiquetas[i].etq,r.label, MSGSIZE);
+        ap.Etiquetas[i].Veces = r.times;
+        /*st = msgrcv(idB, &r, MSGSIZE, i, IPC_NOWAIT);
         int cont = 0;
         while (st > 0) {
             area->numEtq++;
@@ -92,15 +103,44 @@ int main(int argc, char** argv) {
             cout << "Etiq: " << r.label << ", veces: " << r.times << endl;
             st = msgrcv(idB, &r, MSGSIZE, i, IPC_NOWAIT);
             cont++;
+        }*/
+        cout << "fin" << endl;
+    }
+    bool listo[n];
+    for(int i=1; i<=n; i++){
+        listo[i] = false;
+    }
+    int numListos = 0;
+    while(numListos<n){
+        int menor = 1;
+        for(int i = 1; i<n; i++){
+            if(ap.Etiquetas[i].etq < ap.Etiquetas[menor].etq && !listo[i]){
+                menor = i;
+            }
         }
-   }*/
+        strncpy(area->Etiquetas[area->numEtq].etq, ap.Etiquetas[menor].etq, MSGSIZE);
+        area->Etiquetas[area->numEtq].Veces = ap.Etiquetas[menor].Veces;
+        area->numEtq++;
 
-        //cout << "fin" << endl;
+        st = msgrcv(idB, &r, MSGSIZE, menor, IPC_NOWAIT);
+        if(r.label != finalTag) {
+            strncpy(ap.Etiquetas[menor].etq, r.label, MSGSIZE);
+            ap.Etiquetas[menor].Veces = r.times;
+        } else{
+            listo[menor] = true;
+            numListos++;
+        }
+    }
 
-        msgctl(idB, IPC_RMID, NULL);
-        /*shmdt(area);
-        shmctl(id, IPC_RMID, NULL);*/
-        //_exit(0);
+    for(int i = 1; i<area->numEtq;i++){
+        cout << area->Etiquetas[i].etq << " : " << area->Etiquetas[i].Veces << endl;
+    }
 
-	return 0;
+
+    msgctl(idB, IPC_RMID, NULL);
+    shmdt(area);
+    shmctl(id, IPC_RMID, NULL);
+    //_exit(0);
+
+    return 0;
 }
