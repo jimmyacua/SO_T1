@@ -11,11 +11,11 @@
 #include <wait.h>
 #include <sys/sem.h>
 #include <unistd.h>
-#include <map>
+#include <list>
 #include <iterator>
 
 #include "Semaforo.h"
-//#include "Buzon.h"
+
 
 #define MSGSIZE 80
 
@@ -67,7 +67,7 @@ int main(int argc, char** argv) {
             string archivo = argv[i];
             f.leerArchivo(archivo);
             int cont = 1;
-            while (cont <= f.totalEtq()) {
+            while (cont < f.totalEtq()) {
                 strncpy(B.label ,f.getEtq(cont).c_str(),MSGSIZE);
                 B.times = f.getTimes(cont);
                 B.mtype = i;
@@ -85,54 +85,84 @@ int main(int argc, char** argv) {
         }
     }
 
-    //char * AP[n];  //cambiar a diccionario
-    AC ap;
+    AC ap; //arreglo de padre
     struct my_msgbuf r;
-    for(int i=1; i<n; i++){
-        cout << "Proceso padre:" << endl;
+    for(int i=1; i<n; i++){ //recibe un mensaje de cada hijo
         sem.Wait();
         st = msgrcv(idB, &r, MSGSIZE, i, IPC_NOWAIT);
         strncpy(ap.Etiquetas[i].etq,r.label, MSGSIZE);
         ap.Etiquetas[i].Veces = r.times;
-        cout << "fin" << endl;
     }
+
+    //----------------------------------------------------------------------------------------
     bool listo[n];
-    for(int i=1; i<=n; i++){
+    for(int i=1; i<n; i++){
         listo[i] = false;
     }
+
     int numListos = 0;
-    while(numListos<n){
-        int menor = 1;
-        for(int i = 1; i<n; i++){
-            if(ap.Etiquetas[i].etq < ap.Etiquetas[menor].etq && !listo[i]){
-                menor = i;
+    list<int> iguales;
+    list<int>::iterator it;
+    Semaforo s2;
+
+    if(fork()) {
+        iguales.clear();
+        while (numListos < n) {
+            int menor = 1;
+            for (int i = 1; i < n; i++) {
+                if (ap.Etiquetas[i].etq < ap.Etiquetas[menor].etq && !listo[i]) {
+                    menor = i;
+                }
             }
-        }
-        strncpy(area->Etiquetas[area->numEtq].etq, ap.Etiquetas[menor].etq, MSGSIZE);
-        area->Etiquetas[area->numEtq].Veces = ap.Etiquetas[menor].Veces;
-        area->numEtq++;
+            iguales.push_back(menor);
+            for (int i = 1; i < n; i++) {
+                if (ap.Etiquetas[i].etq == ap.Etiquetas[menor].etq) {
+                    iguales.push_back(i);
+                }
+            }
 
-        st = msgrcv(idB, &r, MSGSIZE, menor, IPC_NOWAIT);
-        if(r.label != finalTag) {
-            strncpy(ap.Etiquetas[menor].etq, r.label, MSGSIZE);
-            ap.Etiquetas[menor].Veces = r.times;
-        } else{
-            listo[menor] = true;
-            numListos++;
-        }
-    }
-    cout << area->numEtq << endl;
-    for(int i = 1; i<area->numEtq;i++){
-        cout << area->Etiquetas[i].etq << " : " << area->Etiquetas[i].Veces << endl;
-    }
+            strncpy(area->Etiquetas[area->numEtq].etq, ap.Etiquetas[menor].etq, MSGSIZE);
+            for (it = iguales.begin(); it != iguales.end(); it++) {
+                //area->Etiquetas[area->numEtq].Veces = ap.Etiquetas[menor].Veces;
+                area->Etiquetas[area->numEtq].Veces += ap.Etiquetas[*it].Veces;
+                st = msgrcv(idB, &r, MSGSIZE, *it, IPC_NOWAIT);
+                if (r.label != finalTag) {
+                    strncpy(ap.Etiquetas[*it].etq, r.label, MSGSIZE);
+                    ap.Etiquetas[*it].Veces = r.times;
+                } else {
+                    listo[menor] = true;
+                    numListos++;
+                }
+            }
+            area->numEtq++;
+            iguales.clear();
 
-    /*
-     * FALTA: ED para guardar en la mem compartida las etiquetas sin que se repitan
-     */
+            /*st = msgrcv(idB, &r, MSGSIZE, menor, IPC_NOWAIT);
+            if(r.label != finalTag) {
+                strncpy(ap.Etiquetas[menor].etq, r.label, MSGSIZE);
+                ap.Etiquetas[menor].Veces = r.times;
+            } else{
+                listo[menor] = true;
+                numListos++;
+            }*/
+        }
+        s2.Signal();
+        _exit(0);
+    }
+    //-------------------------------------------------------------------------------------
+    else {
+        s2.Wait();
+        cout << "HIJO IMPRESOR " << area->numEtq << endl;
+        for (int i = 1; i < area->numEtq; i++) {
+            cout << area->Etiquetas[i].etq << " : " << area->Etiquetas[i].Veces << endl;
+        }
+        //_exit(0);
+    }
 
     msgctl(idB, IPC_RMID, NULL);
     shmdt(area);
     shmctl(id, IPC_RMID, NULL);
+    _exit(0);
 
     return 0;
 }

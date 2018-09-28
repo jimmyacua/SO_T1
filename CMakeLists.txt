@@ -3,4 +3,4 @@ project(SO_T1)
 
 set(CMAKE_CXX_STANDARD 11)
 
-add_executable(SO_T1 main.cpp Buzon.cpp Buzon.h Diccionario.cpp Diccionario.h Fichero.cpp Fichero.h Semaforo.cpp Semaforo.h)
+add_executable(SO_T1 main.cpp Diccionario.cpp Diccionario.h Fichero.cpp Fichero.h Semaforo.cpp Semaforo.h)
