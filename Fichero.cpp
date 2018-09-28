@@ -2,7 +2,6 @@
 // Created by jimmy on 21/08/18.
 //
 #include "Fichero.h"
-#include "Buzon.h"
 
 Fichero::Fichero() {
     diccionario.crear();

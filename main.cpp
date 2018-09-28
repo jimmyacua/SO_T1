@@ -25,7 +25,7 @@ struct AreaCompartida {
         char etq[MSGSIZE];
         int Veces;
     }
-    Etiquetas[50];
+            Etiquetas[50];
 };
 
 typedef struct AreaCompartida AC;
