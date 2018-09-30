@@ -48,7 +48,7 @@ Semaforo::Semaforo(int v){
 Semaforo::~Semaforo(){
     int st = semctl(id, 0, IPC_RMID);
     if(-1 == st){ //hubo error
-        perror("semaforo::destructor");
+        perror("Semaforo::destructor");
         exit(2);
     }
 }
@@ -71,5 +71,9 @@ int Semaforo::Wait(){
 
     int st = semop(id, &s, 1);
     return st;
+}
+
+int Semaforo::getID() {
+    return  id;
 }
 
