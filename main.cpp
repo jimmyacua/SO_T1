@@ -88,6 +88,7 @@ int main(int argc, char** argv) {
 
 
     AC ap; //arreglo de padre
+    ap.numEtq = 0;
     struct my_msgbuf r;
     sem.Wait();
     for(int i=1; i< n; i++){ //recibe un mensaje de cada hijo
@@ -112,32 +113,35 @@ int main(int argc, char** argv) {
     if (fork()) {
         while (numListos < n) {
             bool pasarLetra = false;
+
             int menor = 1;
             for (int i = 1; i < n; i++) { //busca la menor etiqueta
                 if (ap.Etiquetas[menor].etq > ap.Etiquetas[i].etq && ap.Etiquetas[i].etq != finalTag) {
                     menor = i;
                 }
             }
+            //cout << menor << endl;
 
-            if (ap.Etiquetas[menor].etq[0] == '/') { //ej: /hola, se guarda la h como primer letra
+            /*if (ap.Etiquetas[menor].etq[0] == '/') { //ej: /hola, se guarda la h como primer letra
                 primerLetra = ap.Etiquetas[menor].etq[1];
             } else {
                 primerLetra = ap.Etiquetas[menor].etq[0];
-            }
+            }*/
 
-            for (int i = 1; i <= n; i++) { //cuenta las apariciones de la etiq menor
-                if (ap.Etiquetas[i].etq == ap.Etiquetas[menor].etq && menor != i) {
-                    ap.Etiquetas[menor].Veces += ap.Etiquetas[i].Veces;
+            for (int i = 1; i <n; i++) { //cuenta las apariciones de la etiq menor
+                if (menor != i) {
+                    if(strcasecmp(ap.Etiquetas[i].etq, ap.Etiquetas[menor].etq) == 0) {
+                        ap.Etiquetas[menor].Veces += ap.Etiquetas[i].Veces;
+                    }
                 }
             }
-
             strncpy(area->Etiquetas[area->numEtq].etq, ap.Etiquetas[menor].etq, MSGSIZE);
-            area->Etiquetas[area->numEtq].Veces = ap.Etiquetas[menor].Veces;
+            area->Etiquetas[area->numEtq].Veces += ap.Etiquetas[menor].Veces;
             area->numEtq++;
             s2.Signal();
             //s3.Wait();
             for (int i = 1; i < n; i++) {//pide etiquetas nuevas tipo i
-                if (ap.Etiquetas[menor].etq == ap.Etiquetas[menor].etq && menor != i) {
+                if (strcasecmp(ap.Etiquetas[i].etq, ap.Etiquetas[menor].etq) == 0 && menor != i) {
                     st = msgrcv(idB, &r, MSGSIZE, i, IPC_NOWAIT);
                     if (r.label != finalTag) {
                         strncpy(ap.Etiquetas[i].etq, r.label, MSGSIZE);
