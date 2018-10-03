@@ -51,7 +51,7 @@ int main(int argc, char** argv) {
     area->numEtq = 0;
     //------------------------------------------
 
-    Semaforo sem;
+    Semaforo sem(0);
     Fichero f;
 
     //--------------Buzon--------------------
@@ -106,8 +106,8 @@ int main(int argc, char** argv) {
 
     int numListos = 1;
 
-    Semaforo s2;
-    Semaforo s3;
+    Semaforo s2(0); //semaforo para imprimir
+
     char primerLetra;
 
     if (fork()) {
@@ -139,7 +139,6 @@ int main(int argc, char** argv) {
                 area->Etiquetas[area->numEtq].Veces += ap.Etiquetas[menor].Veces;
                 area->numEtq++;
                 //s2.Signal();
-                //s3.Wait();
                 for (int i = 1; i < n; i++) {//pide etiquetas nuevas tipo i
                     if (strcasecmp(ap.Etiquetas[i].etq, ap.Etiquetas[menor].etq) == 0 && menor != i) {
                         st = msgrcv(idB, &r, MSGSIZE, i, IPC_NOWAIT);
@@ -180,24 +179,22 @@ int main(int argc, char** argv) {
                 }
            // }
         }
-        _exit(0);
+
+        //_exit(0);
     }
     else {
         s2.Wait();
-        //s3.Wait();
         cout << "HIJO IMPRESOR " << endl;
         for (int i = 0; i < area->numEtq; i++) {
             cout << area->Etiquetas[i].etq << " : " << area->Etiquetas[i].Veces << endl;
         }
-        //s3.Signal();
-        //_exit(0);
+        //exit(0);
     }
-
 
     msgctl(idB, IPC_RMID, NULL);
     shmdt(area);
     shmctl(id, IPC_RMID, NULL);
     //_exit(0);
 
-    //return 0;
+    return 0;
 }
