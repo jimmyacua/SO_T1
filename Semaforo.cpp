@@ -22,12 +22,11 @@ union semun {
                                            (Linux-specific) */
 };
 
-/*struct sembuf{
+/*struct my_sembuf{
 unsigned short sem_num;  // semaphore number
 short          sem_op;   // semaphore operation
 short          sem_flg;  // operation flags
-};
-*/
+};*/
 
 Semaforo::Semaforo(int v){
     id = semget(KEY, 1, IPC_CREAT|0600); // 0600 para dar permisos de lectura y escritura
@@ -68,12 +67,7 @@ int Semaforo::Wait(){
     s.sem_num = 0;
     s.sem_op = -1;
     s.sem_flg = 0;
-
     int st = semop(id, &s, 1);
     return st;
-}
-
-int Semaforo::getID() {
-    return  id;
 }
 

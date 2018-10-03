@@ -14,8 +14,7 @@ public:
     ~Semaforo();
     int Signal();	// Puede llamarse V
     int Wait();	// Puede llamarse P
-    int getID();
-//private:
+private:
     int id;		// Identificador del semaforo
 };
 

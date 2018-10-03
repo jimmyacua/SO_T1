@@ -112,61 +112,80 @@ int main(int argc, char** argv) {
 
     if (fork()) {
         while (numListos < n) {
-            bool pasarLetra = false;
+            bool pasar = false;
 
-            int menor = 1;
-            for (int i = 1; i < n; i++) { //busca la menor etiqueta
-                if (ap.Etiquetas[menor].etq > ap.Etiquetas[i].etq && ap.Etiquetas[i].etq != finalTag) {
-                    menor = i;
-                }
-            }
-            //cout << menor << endl;
-
-            /*if (ap.Etiquetas[menor].etq[0] == '/') { //ej: /hola, se guarda la h como primer letra
-                primerLetra = ap.Etiquetas[menor].etq[1];
-            } else {
-                primerLetra = ap.Etiquetas[menor].etq[0];
-            }*/
-
-            for (int i = 1; i <n; i++) { //cuenta las apariciones de la etiq menor
-                if (menor != i) {
-                    if(strcasecmp(ap.Etiquetas[i].etq, ap.Etiquetas[menor].etq) == 0) {
-                        ap.Etiquetas[menor].Veces += ap.Etiquetas[i].Veces;
+            //while (!pasar) {
+                int menor = 1;
+                for (int i = 1; i < n; i++) { //busca la menor etiqueta
+                    if (ap.Etiquetas[menor].etq > ap.Etiquetas[i].etq && ap.Etiquetas[i].etq != finalTag) {
+                        menor = i;
                     }
                 }
-            }
-            strncpy(area->Etiquetas[area->numEtq].etq, ap.Etiquetas[menor].etq, MSGSIZE);
-            area->Etiquetas[area->numEtq].Veces += ap.Etiquetas[menor].Veces;
-            area->numEtq++;
-            s2.Signal();
-            //s3.Wait();
-            for (int i = 1; i < n; i++) {//pide etiquetas nuevas tipo i
-                if (strcasecmp(ap.Etiquetas[i].etq, ap.Etiquetas[menor].etq) == 0 && menor != i) {
-                    st = msgrcv(idB, &r, MSGSIZE, i, IPC_NOWAIT);
-                    if (r.label != finalTag) {
-                        strncpy(ap.Etiquetas[i].etq, r.label, MSGSIZE);
-                        ap.Etiquetas[i].Veces = r.times;
-                    } else {
-                        listo[i] = true;
-                        numListos++;
+
+                if (ap.Etiquetas[menor].etq[0] == '/') { //ej: /hola, se guarda la h como primer letra
+                    primerLetra = ap.Etiquetas[menor].etq[1];
+                } else {
+                    primerLetra = ap.Etiquetas[menor].etq[0];
+                }
+
+                for (int i = 1; i < n; i++) { //cuenta las apariciones de la etiq menor
+                    if (menor != i) {
+                        if (strcasecmp(ap.Etiquetas[i].etq, ap.Etiquetas[menor].etq) == 0) {
+                            ap.Etiquetas[menor].Veces += ap.Etiquetas[i].Veces;
+                        }
                     }
                 }
-            }
-            //pide una etiqueta nueva de tipo menor
-            st = msgrcv(idB, &r, MSGSIZE, menor, IPC_NOWAIT);
-            if (r.label != finalTag) {
-                strncpy(ap.Etiquetas[menor].etq, r.label, MSGSIZE);
-                ap.Etiquetas[menor].Veces = r.times;
-            } else {
-                listo[menor] = true;
-                numListos++;
-            }
+                strncpy(area->Etiquetas[area->numEtq].etq, ap.Etiquetas[menor].etq, MSGSIZE);
+                area->Etiquetas[area->numEtq].Veces += ap.Etiquetas[menor].Veces;
+                area->numEtq++;
+                //s2.Signal();
+                //s3.Wait();
+                for (int i = 1; i < n; i++) {//pide etiquetas nuevas tipo i
+                    if (strcasecmp(ap.Etiquetas[i].etq, ap.Etiquetas[menor].etq) == 0 && menor != i) {
+                        st = msgrcv(idB, &r, MSGSIZE, i, IPC_NOWAIT);
+                        if (r.label != finalTag) {
+                            strncpy(ap.Etiquetas[i].etq, r.label, MSGSIZE);
+                            ap.Etiquetas[i].Veces = r.times;
+                        } else {
+                            listo[i] = true;
+                            numListos++;
+                        }
+                    }
+                }
+                //pide una etiqueta nueva de tipo menor
+                st = msgrcv(idB, &r, MSGSIZE, menor, IPC_NOWAIT);
+                if (r.label != finalTag) {
+                    strncpy(ap.Etiquetas[menor].etq, r.label, MSGSIZE);
+                    ap.Etiquetas[menor].Veces = r.times;
+                } else {
+                    listo[menor] = true;
+                    numListos++;
+                }
+                bool igual = false;
+                int i = 1;
+                while(i < n && !igual){
+                    char prim = ap.Etiquetas[i].etq[0];
+                    if(prim == '/'){
+                        prim = ap.Etiquetas[i].etq[1];
+                    }
+                    if(prim == primerLetra){
+                        igual = true;
+                    } else { ;
+                        i++;
+                    }
+                }
+                if(!igual){
+                    pasar = true;
+                    s2.Signal();
+                }
+           // }
         }
         _exit(0);
     }
     else {
         s2.Wait();
-        cout << "HIJO IMPRESOR " << area->numEtq << endl;
+        //s3.Wait();
+        cout << "HIJO IMPRESOR " << endl;
         for (int i = 0; i < area->numEtq; i++) {
             cout << area->Etiquetas[i].etq << " : " << area->Etiquetas[i].Veces << endl;
         }
@@ -174,14 +193,11 @@ int main(int argc, char** argv) {
         //_exit(0);
     }
 
-    semctl(sem.getID(), 0, IPC_RMID);
-    semctl(s2.getID(), 0, IPC_RMID);
-    semctl(s3.getID(), 0, IPC_RMID);
 
     msgctl(idB, IPC_RMID, NULL);
     shmdt(area);
     shmctl(id, IPC_RMID, NULL);
     //_exit(0);
 
-    return 0;
+    //return 0;
 }
